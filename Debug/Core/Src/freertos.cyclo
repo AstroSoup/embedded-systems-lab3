@@ -1,0 +1,7 @@
+../Core/Src/freertos.c:188:6:StartTaskLED1	2
+../Core/Src/freertos.c:240:6:StartTasLED2	1
+../Core/Src/freertos.c:215:6:StartTaskUART	3
+../Core/Src/freertos.c:107:13:configureTimerForRunTimeStats	1
+../Core/Src/freertos.c:112:22:getRunTimeCounterValue	1
+../Core/Src/freertos.c:122:6:vApplicationGetIdleTaskMemory	1
+../Core/Src/freertos.c:136:6:MX_FREERTOS_Init	1
