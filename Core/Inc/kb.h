@@ -8,6 +8,7 @@
 
 
 uint8_t Check_Row( uint8_t  Nrow );
+uint8_t Check_Row_Mask( uint8_t  Nrow );
 HAL_StatusTypeDef Set_Keyboard( void );
 
 #endif /* INC_KEYBOARD_H_ */

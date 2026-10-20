@@ -105,3 +105,35 @@ uint8_t Check_Row( uint8_t  Nrow ) {
 
 	return Nkey;
 }
+
+/* Как Check_Row, но возвращает маску всех нажатых в строке клавиш,
+ * а не одну: нужно, чтобы работали одновременные нажатия в одной строке.
+ * Биты те же, что в кодах Check_Row: 0x04 - первый столбец (вход P4),
+ * 0x02 - центральный (P5), 0x01 - третий (P6). */
+uint8_t Check_Row_Mask( uint8_t  Nrow ) {
+	uint8_t mask = 0x00;
+	uint8_t buf;
+	uint8_t kbd_in;
+
+	if( Set_Keyboard() != HAL_OK ) {
+		UART_Transmit((uint8_t*)"Error write init\n");
+	}
+
+	buf = Nrow;
+	if( PCA9538_Write_Register(KBRD_ADDR, CONFIG, &buf) != HAL_OK ) {
+		UART_Transmit((uint8_t*)"Error write config\n");
+	}
+
+	buf = 0x70;
+	if( PCA9538_Read_Inputs(KBRD_ADDR, &buf) != HAL_OK ) {
+		UART_Transmit((uint8_t*)"Read error\n");
+		return 0x00;
+	}
+
+	kbd_in = ~buf & 0x70;
+	if( kbd_in & 0x10 ) mask |= 0x04;
+	if( kbd_in & 0x20 ) mask |= 0x02;
+	if( kbd_in & 0x40 ) mask |= 0x01;
+
+	return mask;
+}

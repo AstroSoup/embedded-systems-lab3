@@ -64,16 +64,29 @@ void oled_Fill(OLED_COLOR color) {
 }
 
 
-void oled_UpdateScreen(void) {
+/* Отправляет на экран только столбцы x1..x2 (включительно) на всех страницах.
+ * При обновлении части экрана по I2C передаётся пропорционально меньше данных. */
+void oled_UpdateColumns(uint8_t x1, uint8_t x2) {
 	uint8_t i;
+
+	if (x2 >= OLED_WIDTH) {
+		x2 = OLED_WIDTH - 1;
+	}
+	if (x1 > x2) {
+		return;
+	}
 
 	for (i = 0; i < 8; i++) {
 		oled_WriteCommand(0xB0 + i);
-		oled_WriteCommand(0x00);
-		oled_WriteCommand(0x10);
+		oled_WriteCommand(x1 & 0x0F);
+		oled_WriteCommand(0x10 | (x1 >> 4));
 
-		HAL_I2C_Mem_Write(&hi2c1,OLED_I2C_ADDR,0x40,1,&OLED_Buffer[OLED_WIDTH * i],OLED_WIDTH,100);
+		HAL_I2C_Mem_Write(&hi2c1,OLED_I2C_ADDR,0x40,1,&OLED_Buffer[OLED_WIDTH * i + x1],x2 - x1 + 1,100);
 	}
+}
+
+void oled_UpdateScreen(void) {
+	oled_UpdateColumns(0, OLED_WIDTH - 1);
 }
 
 void oled_DrawPixel(uint8_t x, uint8_t y, OLED_COLOR color) {
