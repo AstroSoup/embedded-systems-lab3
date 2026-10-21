@@ -5,6 +5,8 @@
 #include "kb.h"
 #include "menu.h"
 #include "tetris.h"
+#include "scoreboard.h"
+#include "fonts.h"
 
 #define KEYPAD_SCAN_MS        10
 #define KEYPAD_DEBOUNCE       2
@@ -85,12 +87,151 @@ void Action_Play(void) {
 	Keypad_Flush();
 }
 
-/* Заглушка: экран поражения будет реализован отдельно. */
-void Action_GameOver(uint32_t score) {
-	(void)score;
+/* Action_GameOver реализована в gameover.c. */
+
+/* ---------- Экран рекордов ----------
+ *
+ * Список по убыванию score: номер, имя, score. Видно HS_VISIBLE строк.
+ *   (0,1) - листать вверх, (2,1) - листать вниз, (1,1) - назад в меню.
+ */
+#define HS_KEY_UP           KEY_ID(0, 1)
+#define HS_KEY_DOWN         KEY_ID(2, 1)
+#define HS_KEY_BACK         KEY_ID(1, 1)
+
+#define HS_FONT_W           7                   /* Font_7x10 */
+#define HS_FONT_H           10
+#define HS_TITLE_Y          0
+#define HS_LINE_Y           11
+#define HS_ROW_Y0           14
+#define HS_ROW_PITCH        12
+#define HS_VISIBLE          4
+#define HS_RANK_X           0
+#define HS_NAME_X           30
+#define HS_SCORE_RIGHT_X    118                 /* правый край поля score */
+#define HS_SCORE_DIGITS     6
+#define HS_ARROW_CX         124
+#define HS_ARROW_HALF       2
+#define HS_ARROW_UP_Y       14
+#define HS_ARROW_DOWN_Y     57
+
+/* Пишет число в buf справа налево в поле width, лишние слева - пробелы. */
+static void HighScore_FormatNumber(char *buf, uint8_t width, uint32_t value) {
+	uint8_t i = width;
+
+	buf[width] = '\0';
+	while (i > 0) {
+		i--;
+		if (value > 0 || i == width - 1) {
+			buf[i] = (char)('0' + (value % 10));
+			value /= 10;
+		} else {
+			buf[i] = ' ';
+		}
+	}
+}
+
+/* Копия таблицы, отсортированная по убыванию score (при равенстве - по порядку
+ * добавления). Возвращает число записей. */
+static uint8_t HighScore_Load(ScoreEntry *list) {
+	uint8_t count = 0, i, j;
+	ScoreEntry tmp;
+
+	while (count < SCOREBOARD_CAPACITY && Scoreboard_At(count, &list[count])) {
+		count++;
+	}
+
+	/* сортировка вставками: устойчивая, записей немного */
+	for (i = 1; i < count; i++) {
+		tmp = list[i];
+		for (j = i; j > 0 && list[j - 1].score < tmp.score; j--) {
+			list[j] = list[j - 1];
+		}
+		list[j] = tmp;
+	}
+	return count;
+}
+
+static void HighScore_Draw(const ScoreEntry *list, uint8_t count, uint8_t top) {
+	char buf[HS_SCORE_DIGITS + 2];
+	uint8_t row, idx, y, i;
+
+	oled_Fill(Black);
+
+	oled_SetCursor((OLED_WIDTH - 11 * HS_FONT_W) / 2, HS_TITLE_Y);
+	oled_WriteString("HIGH SCORES", Font_7x10, White);
+	oled_DrawHLine(0, OLED_WIDTH - 1, HS_LINE_Y, White);
+
+	if (count == 0) {
+		oled_SetCursor((OLED_WIDTH - 10 * HS_FONT_W) / 2, 32);
+		oled_WriteString("NO RECORDS", Font_7x10, White);
+		return;
+	}
+
+	for (row = 0; row < HS_VISIBLE; row++) {
+		idx = top + row;
+		if (idx >= count) {
+			break;
+		}
+		y = HS_ROW_Y0 + row * HS_ROW_PITCH;
+
+		HighScore_FormatNumber(buf, 2, (uint32_t)idx + 1);
+		buf[2] = '.';
+		buf[3] = '\0';
+		oled_SetCursor(HS_RANK_X, y);
+		oled_WriteString(buf, Font_7x10, White);
+
+		oled_SetCursor(HS_NAME_X, y);
+		oled_WriteString((char *)list[idx].name, Font_7x10, White);
+
+		HighScore_FormatNumber(buf, HS_SCORE_DIGITS, list[idx].score);
+		oled_SetCursor(HS_SCORE_RIGHT_X - HS_SCORE_DIGITS * HS_FONT_W + 1, y);
+		oled_WriteString(buf, Font_7x10, White);
+	}
+
+	/* стрелки "есть ещё записи" сверху и снизу */
+	if (top > 0) {
+		for (i = 0; i <= HS_ARROW_HALF; i++) {
+			oled_DrawHLine(HS_ARROW_CX - i, HS_ARROW_CX + i, HS_ARROW_UP_Y + i, White);
+		}
+	}
+	if (top + HS_VISIBLE < count) {
+		for (i = 0; i <= HS_ARROW_HALF; i++) {
+			oled_DrawHLine(HS_ARROW_CX - (HS_ARROW_HALF - i),
+					HS_ARROW_CX + (HS_ARROW_HALF - i), HS_ARROW_DOWN_Y + i, White);
+		}
+	}
 }
 
 void Action_HighScore(void) {
+	ScoreEntry list[SCOREBOARD_CAPACITY];
+	uint8_t count = HighScore_Load(list);
+	uint8_t top = 0;
+	uint8_t maxTop = (count > HS_VISIBLE) ? (uint8_t)(count - HS_VISIBLE) : 0;
+	int8_t key;
+
+	Keypad_Flush();                             /* нажатие OK в меню сюда не попадает */
+	HighScore_Draw(list, count, top);
+	Display_Flush(0, OLED_WIDTH - 1);
+
+	for (;;) {
+		key = Keypad_WaitKey(osWaitForever);
+
+		if (key == HS_KEY_BACK) {
+			break;
+		}
+		if (key == HS_KEY_UP && top > 0) {
+			top--;
+		} else if (key == HS_KEY_DOWN && top < maxTop) {
+			top++;
+		} else {
+			continue;                           /* ничего не изменилось - не перерисовываем */
+		}
+		HighScore_Draw(list, count, top);
+		Display_Flush(0, OLED_WIDTH - 1);
+	}
+
+	Keypad_WaitRelease(1000);
+	Keypad_Flush();
 }
 
 static void Menu_Draw(uint8_t focus) {
@@ -109,6 +250,8 @@ static void Menu_Draw(uint8_t focus) {
 }
 
 void Menu_Init(void) {
+	Scoreboard_Init();
+
 	osMutexDef(I2cMutex);
 	I2cMutexHandle = osMutexCreate(osMutex(I2cMutex));
 

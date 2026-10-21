@@ -1,0 +1,8 @@
+../Core/Src/scoreboard.c:10:13:Lock	8	static
+../Core/Src/scoreboard.c:23:15:Find	16	static
+../Core/Src/scoreboard.c:16:13:Unlock	8	static
+../Core/Src/scoreboard.c:34:6:Scoreboard_Init	16	static
+../Core/Src/scoreboard.c:40:9:Scoreboard_Submit	24	static
+../Core/Src/scoreboard.c:79:9:Scoreboard_Get	16	static
+../Core/Src/scoreboard.c:93:9:Scoreboard_Count	8	static
+../Core/Src/scoreboard.c:102:9:Scoreboard_At	16	static

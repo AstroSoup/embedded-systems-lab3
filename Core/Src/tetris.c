@@ -6,7 +6,8 @@
  *
  * Правила - по Tetris Guideline: вращение SRS с wall kick, 7-bag, появление
  * фигур в скрытых строках над стаканом, призрак, lock delay 0.5 c со сбросом
- * при движении (до 15 раз), гравитация по уровням, очки за линии и за дропы.
+ * при движении (до 15 раз), гравитация по уровням с ускорением по времени партии,
+ * очки за линии и за дропы.
  *
  * Клавиши (строка, столбец, нумерация с нуля):
  *   (1,0) - поворот против часовой     (1,2) - поворот по часовой
@@ -48,6 +49,9 @@
 #define TETRIS_LOCK_MAX_RESETS  15
 #define TETRIS_SOFT_FACTOR      20                  /* soft drop быстрее гравитации в 20 раз */
 #define TETRIS_LINES_PER_LEVEL  10
+#define TETRIS_SPEEDUP_PERIOD_MS 20000              /* ступень ускорения раз в 20 с партии */
+#define TETRIS_SPEEDUP_PCT      8                   /* каждая ступень: +8% к скорости падения */
+#define TETRIS_SPEEDUP_MAX_STEPS 30                 /* предел: скорость x3.4 к базовой */
 #define TETRIS_MAX_LEVEL        15
 #define TETRIS_MAX_SCORE        999999UL
 
@@ -100,6 +104,8 @@ static uint32_t Rng;
 static uint32_t Score;
 static uint32_t Lines;
 static uint32_t Level;
+static uint32_t StartAt;            /* начало партии, мс */
+static uint32_t SpeedSteps;         /* ступени ускорения по времени */
 static uint8_t  GameOver;
 
 static uint32_t NextFallAt;
@@ -196,9 +202,20 @@ static uint8_t BagNext(void) {
 	return Bag[BagPos++];
 }
 
+/* Интервал падения: базовый по уровню, сокращённый ступенями ускорения по времени. */
 static uint16_t GravityInterval(void) {
 	uint32_t lvl = (Level > TETRIS_MAX_LEVEL) ? TETRIS_MAX_LEVEL : Level;
-	return GravityMs[lvl - 1];
+	uint32_t ms = (uint32_t)GravityMs[lvl - 1] * 100
+	              / (100 + TETRIS_SPEEDUP_PCT * SpeedSteps);
+
+	return (ms < 1) ? 1 : (uint16_t)ms;
+}
+
+/* Пересчитывает ступень ускорения по времени, прошедшему с начала партии. */
+static void UpdateSpeedup(uint32_t now) {
+	uint32_t steps = (now - StartAt) / TETRIS_SPEEDUP_PERIOD_MS;
+
+	SpeedSteps = (steps > TETRIS_SPEEDUP_MAX_STEPS) ? TETRIS_SPEEDUP_MAX_STEPS : steps;
 }
 
 static uint16_t SoftInterval(void) {
@@ -627,6 +644,8 @@ static void GameReset(uint32_t now) {
 	Score = 0;
 	Lines = 0;
 	Level = 1;
+	StartAt = now;
+	SpeedSteps = 0;
 	GameOver = 0;
 	RepeatDir = 0;
 	BagPos = 7;
@@ -669,6 +688,7 @@ uint32_t Tetris_Play(void) {
 		}
 
 		held = Keypad_Held();
+		UpdateSpeedup(now);
 		UpdateRepeat(now, held);
 		UpdateGravity(now, held);
 		UpdateLock(now);

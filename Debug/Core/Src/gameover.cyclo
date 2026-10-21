@@ -1,0 +1,8 @@
+../Core/Src/gameover.c:113:13:ScrollLetter	6
+../Core/Src/gameover.c:124:15:FirstEmpty	3
+../Core/Src/gameover.c:73:13:DrawScoreLine	3
+../Core/Src/gameover.c:47:13:FillRect	2
+../Core/Src/gameover.c:56:13:DrawTriangleUp	2
+../Core/Src/gameover.c:65:13:DrawTriangleDown	2
+../Core/Src/gameover.c:92:13:DrawEntry	4
+../Core/Src/gameover.c:135:6:Action_GameOver	9

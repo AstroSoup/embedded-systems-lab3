@@ -1,0 +1,3 @@
+../Core/Src/sprites.c:100:6:oled_DrawBitmap	48	static
+../Core/Src/sprites.c:127:6:oled_DrawSprite	56	static
+../Core/Src/sprites.c:148:6:oled_DrawTetromino	48	static

@@ -1,0 +1,14 @@
+../Core/Src/menu.c:118:13:HighScore_FormatNumber	4	static
+../Core/Src/menu.c:135:16:HighScore_Load	24	static
+../Core/Src/menu.c:154:13:HighScore_Draw	40	static
+../Core/Src/menu.c:269:6:StartTaskKeypad	40	static
+../Core/Src/menu.c:237:13:Menu_Draw	24	static
+../Core/Src/menu.c:50:8:Keypad_WaitKey	24	static
+../Core/Src/menu.c:306:6:StartTaskMenu	8	static
+../Core/Src/menu.c:59:10:Keypad_Held	0	static
+../Core/Src/menu.c:63:6:Keypad_Flush	8	static
+../Core/Src/menu.c:68:6:Keypad_WaitRelease	8	static
+../Core/Src/menu.c:81:6:Action_Play	8	static
+../Core/Src/menu.c:75:6:Display_Flush	16	static
+../Core/Src/menu.c:205:6:Action_HighScore	144	static
+../Core/Src/menu.c:252:6:Menu_Init	96	static
